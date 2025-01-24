@@ -36,8 +36,12 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  audioplayers: ^6.1.0 # Replace with the latest version
+  audioplayers: ^6.1.0
   path_provider: ^2.1.5
+  intl: ^0.18.0
+  firebase_core: ^3.10.0
+  firebase_auth: ^5.4.0
+  flutter_colorpicker: ^1.0.3
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +70,12 @@ flutter:
    - assets/audio/Consonant_Audios/
    - assets/audio/Vowel_Audios/
    - assets/audio/Numeral_Audios/
+   - assets/images/nepali_flag.jpg
+   - assets/audio/National_anthem.mp3
+   - assets/images/
+   - assets/stroke_orders/consonants/
+   - assets/stroke_orders/numerals/
+   - assets/stroke_orders/vowels/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
