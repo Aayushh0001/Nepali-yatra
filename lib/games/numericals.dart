@@ -37,12 +37,10 @@ class _NepaliNumeralMatchGameState extends State<NepaliNumeralMatchGame> {
   }
 
   void resetGame() {
-    // Randomly select 5 numerals from the list
     final random = Random();
     final selectedNumerals = List<Map<String, String>>.from(numerals)..shuffle(random);
-    final fiveNumerals = selectedNumerals.take(5).toList(); // Get the first 5 items
+    final fiveNumerals = selectedNumerals.take(5).toList();
 
-    // Shuffle the 5 numerals so that their position is random, but we keep the pairs intact
     shuffledNepaliNumerals = List.from(fiveNumerals);
     shuffledEnglishNumerals = List.from(fiveNumerals);
 
@@ -64,17 +62,15 @@ class _NepaliNumeralMatchGameState extends State<NepaliNumeralMatchGame> {
 
       if (selectedNepaliNumeral != null && selectedEnglishNumeral != null) {
         if (selectedNepaliNumeral!['english'] == selectedEnglishNumeral!['english']) {
-          // Match found
+
           matchedPairs.add(selectedNepaliNumeral!['english']!);
 
-          // Remove matched numerals from both lists
+
           shuffledNepaliNumerals.remove(selectedNepaliNumeral);
           shuffledEnglishNumerals.remove(selectedEnglishNumeral);
 
           selectedNepaliNumeral = null;
           selectedEnglishNumeral = null;
-
-          // Check if the game is completed
           if (matchedPairs.length == 5) {
             showDialog(
               context: context,
@@ -95,7 +91,7 @@ class _NepaliNumeralMatchGameState extends State<NepaliNumeralMatchGame> {
                     child: Text('Exit'),
                     onPressed: () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pop(); // Close the game screen (exit)
+                      Navigator.of(context).pop();
                     },
                   ),
                 ],
@@ -117,7 +113,6 @@ class _NepaliNumeralMatchGameState extends State<NepaliNumeralMatchGame> {
       appBar: AppBar(title: Text('Nepali Numeral Matching Game')),
       body: Row(
         children: [
-          // Nepali Numerals Column
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -154,13 +149,11 @@ class _NepaliNumeralMatchGameState extends State<NepaliNumeralMatchGame> {
               ],
             ),
           ),
-          // English Numerals Column
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text('English Numerals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                // Add SingleChildScrollView to avoid overflow
                 SingleChildScrollView(
                   child: Wrap(
                     spacing: 10,

@@ -39,7 +39,6 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     final minute = now.minute.toString().padLeft(2, '0');
     final period = _getNepaliPeriod(now.hour);
 
-    // Convert time to Nepali digits
     return '${_convertToNepaliNumber(hour.toString())}:${_convertToNepaliNumber(
         minute)} $period';
   }
