@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:nepali_yatra/auth.dart';
+import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,34 +17,55 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _controllerEmail = TextEditingController();
   final TextEditingController _controllerPassword = TextEditingController();
 
-  Future<void> signInWithEmailAndPassword() async{
+  Future<void> signInWithEmailAndPassword() async {
     try {
       await Auth().signInWithEmailAndPassword(
-          email: _controllerEmail.text,
-          password: _controllerPassword.text,
+        email: _controllerEmail.text,
+        password: _controllerPassword.text,
       );
-    } on FirebaseException catch (e) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()), // Replace with HomePage
+      );
+    } on FirebaseAuthException catch (e) {
       setState(() {
-        errorMessage = e.message;
+        errorMessage = e.message ?? 'Login failed. Please try again.';
       });
+      print('Login Error: ${e.message}');
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Unexpected error occurred. Please try again.';
+      });
+      print('Unexpected Error: $e');
     }
   }
 
-  Future<void> createUserWithEmailAndPassword() async{
+  Future<void> createUserWithEmailAndPassword() async {
     try {
       await Auth().createUserWithEmailAndPassword(
         email: _controllerEmail.text,
         password: _controllerPassword.text,
       );
-    } on FirebaseException catch (e) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()), // Replace with HomePage
+      );
+    } on FirebaseAuthException catch (e) {
       setState(() {
-        errorMessage = e.message;
+        errorMessage = e.message ?? 'Registration failed. Please try again.';
       });
+      print('Registration Error: ${e.message}');
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Unexpected error occurred. Please try again.';
+      });
+      print('Unexpected Error: $e');
     }
   }
 
+
   Widget _title(){
-    return const Text('Firebase Auth');
+    return const Text('Nepali Yatra');
   }
 
   Widget _entryField(

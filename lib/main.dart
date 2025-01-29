@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:nepali_yatra/features/quiz_feature.dart';
 import 'package:nepali_yatra/features/time.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:nepali_yatra/games/games.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'widget_tree.dart';
 
-void main() => runApp(const NepaliYatra());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const NepaliYatra());
+}
 
 class NepaliYatra extends StatelessWidget {
   const NepaliYatra({super.key});
@@ -77,7 +84,19 @@ class HomeScreen extends StatelessWidget {
                         foregroundColor: Colors.black,
                       ),
                       child: const Text("Games")
-                  )
+                  ),
+                  ElevatedButton(onPressed: (){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context)=> const QuizFeature()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF9f849b),
+                    foregroundColor: Colors.black,
+                  ),
+                      child: const Text("Quiz & Visualiztion"),
+                  ),
                 ],
               ),
             ),
