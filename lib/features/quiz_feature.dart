@@ -18,8 +18,8 @@ final List<Map<String ,String>> flowers = [
   {'english': 'Rhododendron', 'nepali': 'लालीगुराँस', 'image': 'assets/flowers/rhododendron.jpg'},
   {'english': 'Daisy', 'nepali': 'लालीगुराँस', 'image': 'assets/flowers/daisy.jpeg'},
   {'english': 'Marigold', 'nepali': 'सयपत्री', 'image': 'assets/flowers/marigold.jpg'},
-  {'english': 'Sunflower', 'nepali': 'लालीगुराँस', 'image': 'assets/flowers/sunflowers.jpeg'},
-  {'english': 'Tulips', 'nepali': 'लालीगुराँस', 'image': 'assets/flowers/tulips.jpeg'},
+  {'english': 'Sunflower', 'nepali': 'सूर्यमुखी', 'image': 'assets/flowers/sunflowers.jpeg'},
+  {'english': 'Tulips', 'nepali': 'ट्युलिप्स', 'image': 'assets/flowers/tulips.jpeg'},
 ];
 
 final List<Map<String, String>> colors = [

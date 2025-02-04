@@ -556,7 +556,7 @@ class _DrawingPageState extends State<DrawingPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            _goBackToCategories(); // Reset when going back
+            _goBackToCategories();
             Navigator.pop(context);
           },
         ),
