@@ -5,7 +5,9 @@ import 'package:nepali_yatra/features/time.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:nepali_yatra/games/games.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'widget_tree.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:image/image.dart' as imgs;
+import 'dart:ui' as ui;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -420,6 +422,10 @@ class _DrawingPageState extends State<DrawingPage> {
   String? _selectedLetter;
   Color _brushColor = Colors.black;
   double _brushSize = 4.0;
+  Interpreter? _interpreter;
+  bool _iscorrect = false;
+  bool _hasChecked = false;
+
 
   final Map<String, Map<String, String>> _categories = {
     "Vowels": {
@@ -487,6 +493,105 @@ class _DrawingPageState extends State<DrawingPage> {
     },
   };
 
+  @override
+  void initState() {
+    super.initState();
+    loadModel();
+  }
+
+  Future<void> loadModel() async{
+    try{
+      _interpreter = await Interpreter.fromAsset('assets/models/nepali_char.tflite');
+    }catch(e){
+      print('Error loading model: $e');
+    }
+  }
+  Future<void> checkDrawing() async {
+    if (_interpreter == null || _selectedLetter == null) return;
+
+    try {
+      // Create a boundary around the drawing area
+      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+      final size = renderBox.size;
+
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      // Draw white background
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()..color = Colors.white,
+      );
+
+      // Draw the character
+      final paint = Paint()
+        ..color = Colors.black
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = _brushSize;
+
+      for (int i = 0; i < _points.length - 1; i++) {
+        if (_points[i] != null && _points[i + 1] != null) {
+          canvas.drawLine(_points[i]!, _points[i + 1]!, paint);
+        }
+      }
+
+      // Convert to image
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(28, 28);
+      final imgBytes = await img.toByteData(format: ui.ImageByteFormat.png);
+
+      if (imgBytes == null) return;
+
+      // Process image for model input
+      final inputImage = imgs.decodeImage(imgBytes.buffer.asUint8List());
+      if (inputImage == null) return;
+
+      final grayscale = imgs.grayscale(inputImage);
+      // Prepare input tensor (assuming model expects 28x28 grayscale image)
+      var input = List.generate(
+        1,
+            (_) => List.generate(
+          28,
+              (_) => List.generate(
+            28,
+                (_) => 0.0,
+          ),
+        ),
+      );
+
+      // Normalize pixel values
+      for (int y = 0; y < 28; y++) {
+        for (int x = 0; x < 28; x++) {
+          input[0][y][x] = grayscale.getPixel(x, y) / 255.0;
+        }
+      }
+
+      // Run inference
+      var output = List.filled(1 * _categories[_selectedCategory]!.length, 0.0)
+          .reshape([1, _categories[_selectedCategory]!.length]);
+      _interpreter!.run(input, output);
+
+      // Get prediction
+      final predictions = output[0] as List<double>;
+      final maxScore = predictions.reduce((a, b) => a > b ? a : b);
+      final predictedIndex = predictions.indexOf(maxScore);
+
+      // Compare with selected letter
+      final letters = _categories[_selectedCategory]!.keys.toList();
+      final predictedLetter = letters[predictedIndex];
+
+      setState(() {
+        _iscorrect = predictedLetter == _selectedLetter;
+        _hasChecked = true;
+      });
+
+    } catch (e) {
+      print('Error processing drawing: $e');
+    }
+  }
+
+
+
   void _pickColor() {
     showDialog(
       context: context,
@@ -538,6 +643,7 @@ class _DrawingPageState extends State<DrawingPage> {
     setState(() {
       _undoStack.add(List.from(_points));
       _points.clear();
+      _hasChecked = false;
     });
   }
 
@@ -563,7 +669,6 @@ class _DrawingPageState extends State<DrawingPage> {
       ),
       body: Column(
         children: [
-          // Category selection
           SizedBox(
             height: 80,
             child: ListView(
@@ -663,28 +768,49 @@ class _DrawingPageState extends State<DrawingPage> {
             ),
           // Drawing Area
           Expanded(
-            child: GestureDetector(
-              onPanUpdate: (details) {
-                setState(() {
-                  RenderBox renderBox = context.findRenderObject() as RenderBox;
-                  _points.add(renderBox.globalToLocal(details.localPosition));
-                });
-              },
-              onPanEnd: (details) {
-                setState(() {
-                  _points.add(null);
-                });
-              },
-              child: Container(
-                color: Colors.grey.shade200,
-                child: CustomPaint(
-                  painter: DrawingPainter(_points, _brushColor, _brushSize),
-                  size: Size.infinite,
+            child: Stack(
+              children: [
+                GestureDetector(
+                  onPanUpdate: (details) {
+                    setState(() {
+                      RenderBox renderBox = context.findRenderObject() as RenderBox;
+                      _points.add(renderBox.globalToLocal(details.localPosition));
+                      _hasChecked = false;  // Reset check status when drawing
+                    });
+                  },
+                  onPanEnd: (details) {
+                    setState(() {
+                      _points.add(null);
+                    });
+                  },
+                  child: Container(
+                    color: Colors.grey.shade200,
+                    child: CustomPaint(
+                      painter: DrawingPainter(_points, _brushColor, _brushSize),
+                      size: Size.infinite,
+                    ),
+                  ),
                 ),
-              ),
+                // Add prediction feedback overlay
+                if (_hasChecked)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _iscorrect ? Colors.green : Colors.red,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _iscorrect ? 'Correct!' : 'Try Again',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          // Brush options and controls
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -706,6 +832,11 @@ class _DrawingPageState extends State<DrawingPage> {
                   onPressed: _pickColor,
                   icon: const Icon(Icons.color_lens),
                 ),
+                // Add Check button
+                ElevatedButton(
+                  onPressed: _selectedLetter != null ? checkDrawing : null,
+                  child: const Text('Check'),
+                ),
                 SizedBox(
                   width: 100,
                   child: Slider(
@@ -717,7 +848,6 @@ class _DrawingPageState extends State<DrawingPage> {
                         _brushSize = size;
                       });
                     },
-                    label: 'Brush Size',
                   ),
                 ),
               ],
@@ -727,8 +857,13 @@ class _DrawingPageState extends State<DrawingPage> {
       ),
     );
   }
-}
 
+  @override
+  void dispose() {
+    _interpreter?.close();
+    super.dispose();
+  }
+}
 
 class DrawingPainter extends CustomPainter {
   final List<Offset?> points;
