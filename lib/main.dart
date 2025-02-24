@@ -1,13 +1,18 @@
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:nepali_yatra/features/quiz_feature.dart';
-import 'package:nepali_yatra/features/time.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:nepali_yatra/games/games.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as imgs;
 import 'dart:ui' as ui;
+import 'Screens/login_signup.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,89 +25,987 @@ class NepaliYatra extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasData) {
+            return const HomeScreen();
+          } else {
+            return const AuthScreen();
+          }
+        },
+      ),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 1; // Start with Home in the middle
+
+  // List of screens to display
+  final List<Widget> _screens = [
+    const LeaderboardScreen(), // Index 0
+    const MainContentScreen(), // Index 1 (Home)
+    const ProfileScreen(),     // Index 2
+  ];
+
+  // Handle bottom navigation bar item taps
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Nepali Yatra"),
+        title: _selectedIndex == 1
+            ? const Text("Nepali Yatra")
+            : const SizedBox.shrink(),
+        actions: [
+          if (_selectedIndex == 1)
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AuthScreen()),
+                );
+              },
+            ),
+        ],
       ),
-      body: Column(
-        children: [
-          const HeaderWidget(),
-          Expanded(
-            child: Center(
+      body: _screens[_selectedIndex], // Display the selected screen
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.leaderboard),
+            label: 'Leaderboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MainContentScreen extends StatelessWidget {
+  const MainContentScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.blue.shade50,
+            Colors.white,
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Welcome Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ReadingScreen()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7c564f),
-                      foregroundColor: Colors.black,
+                  const Text(
+                    'Welcome to Nepali Yatra',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D3748),
                     ),
-                    child: const Text("Reading Section"),
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const DrawingPage()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFf6b7ae),
-                      foregroundColor: Colors.black,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start your journey to learn Nepali',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
                     ),
-                    child: const Text("Writing Section"),
-                  ),
-                  ElevatedButton(
-                      onPressed: (){
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder:(context)=>const GamesScreen()
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4C8184),
-                        foregroundColor: Colors.black,
-                      ),
-                      child: const Text("Games")
-                  ),
-                  ElevatedButton(onPressed: (){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context)=> const QuizFeature()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF9f849b),
-                    foregroundColor: Colors.black,
-                  ),
-                      child: const Text("Quiz & Visualiztion"),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 24),
+
+            // Grid of Features
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                children: [
+                  _buildFeatureCard(
+                    context,
+                    'Reading Section',
+                    'Learn Nepali characters',
+                    Icons.menu_book,
+                    const Color(0xFF7c564f),
+                        () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ReadingScreen()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    context,
+                    'Writing Section',
+                    'Practice writing',
+                    Icons.edit,
+                    const Color(0xFFf6b7ae),
+                        () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const DrawingPage()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    context,
+                    'Games',
+                    'Learn through Games',
+                    Icons.games,
+                    const Color(0xFF4C8184),
+                        () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const GamesScreen()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    context,
+                    'Quiz & Visualization',
+                    'Test your knowledge',
+                    Icons.quiz,
+                    const Color(0xFF9f849b),
+                        () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const QuizFeature()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(
+      BuildContext context,
+      String title,
+      String subtitle,
+      IconData icon,
+      Color color,
+      VoidCallback onTap,
+      ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 32,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D3748),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return const Center(
+            child: Text('No user data found. Please update your profile.'),
+          );
+        }
+
+        final userData = snapshot.data!.data() as Map<String, dynamic>;
+        final createdAt = (userData['createdAt'] as Timestamp).toDate();
+
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              // Profile Header with Background
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: [
+                      Colors.blue.shade300,
+                      Colors.blue.shade600,
+                    ],
+                  ),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Large Profile Picture with Default
+                    Positioned(
+                      top: 30,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 4,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              spreadRadius: 2,
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: userData['photoUrl'] != null
+                              ? Image.network(
+                            userData['photoUrl'],
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildDefaultAvatar(userData['name']),
+                          )
+                              : _buildDefaultAvatar(userData['name']),
+                        ),
+                      ),
+                    ),
+                    // Name
+                    Positioned(
+                      bottom: 20,
+                      child: Text(
+                        userData['name'] ?? 'Anonymous',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              offset: Offset(0, 2),
+                              blurRadius: 4,
+                              color: Colors.black26,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Profile Information Cards
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // Stats Row
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildStatColumn('Score', '${userData['score'] ?? 0}'),
+                          Container(
+                            height: 40,
+                            width: 1,
+                            color: Colors.grey.withOpacity(0.2),
+                          ),
+                          _buildStatColumn(
+                            'Member Since',
+                            '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Info Card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildInfoRow(Icons.email, 'Email', user?.email ?? 'N/A'),
+                          const Divider(height: 20),
+                          _buildInfoRow(
+                            Icons.calendar_today,
+                            'Joined',
+                            '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Edit Profile Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EditProfileScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Edit Profile'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDefaultAvatar(String? name) {
+    return Container(
+      color: Colors.blue.shade100,
+      child: Center(
+        child: Text(
+          (name?.isNotEmpty == true) ? name![0].toUpperCase() : 'A',
+          style: TextStyle(
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue.shade700,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.blue.shade400, size: 24),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class LeaderboardScreen extends StatelessWidget {
+  const LeaderboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .orderBy('score', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No users found'));
+          }
+
+          final users = snapshot.data!.docs;
+
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.blue.shade50, Colors.white],
+              ),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+                      SizedBox(width: 8),
+                      Text(
+                        'Top Players',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: users.length,
+                    itemBuilder: (context, index) {
+                      final user = users[index].data() as Map<String, dynamic>;
+                      final rank = index + 1;
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        elevation: 2,
+                        child: ListTile(
+                          leading: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundColor: _getRankColor(rank),
+                                backgroundImage: user['photoUrl'] != null
+                                    ? NetworkImage(user['photoUrl'])
+                                    : null,
+                                child: user['photoUrl'] == null
+                                    ? Text(
+                                  (user['name'] ?? 'A')[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                                    : null,
+                              ),
+                              if (rank <= 3)
+                                Positioned(
+                                  bottom: -2,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _getRankColor(rank),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '#$rank',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          title: Text(
+                            user['name'] ?? 'Anonymous',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(
+                            user['email'] ?? '',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 13,
+                            ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getScoreColor(user['score'] ?? 0),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Text(
+                              '${user['score'] ?? 0} pts',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Color _getRankColor(int rank) {
+    switch (rank) {
+      case 1:
+        return Colors.amber;
+      case 2:
+        return Colors.blueGrey;
+      case 3:
+        return Colors.brown;
+      default:
+        return Colors.blue.shade400;
+    }
+  }
+
+  Color _getScoreColor(int score) {
+    if (score >= 1000) return Colors.purple;
+    if (score >= 500) return Colors.indigo;
+    if (score >= 250) return Colors.blue;
+    return Colors.teal;
+  }
+}
+
+class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
+
+  @override
+  _EditProfileScreenState createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  final _nameController = TextEditingController();
+  String? _photoUrl;
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          _nameController.text = doc['name'] ?? '';
+          _photoUrl = doc['photoUrl'];
+        });
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      setState(() => _isLoading = true);
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'name': _nameController.text,
+        'photoUrl': _photoUrl,
+      });
+
+      setState(() => _isLoading = false);
+      Navigator.pop(context);
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating profile: $e')),
+      );
+    }
+  }
+
+  Future<void> _uploadPhoto() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile == null) return;
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      setState(() => _isLoading = true);
+
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('user_photos/${user.uid}.jpg');
+
+      await storageRef.putFile(File(pickedFile.path));
+      final downloadUrl = await storageRef.getDownloadURL();
+
+      setState(() {
+        _photoUrl = downloadUrl;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading photo: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Edit Profile'),
+        elevation: 0,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).primaryColor,
+                    Theme.of(context).primaryColor.withOpacity(0.8),
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.white,
+                          child: CircleAvatar(
+                            radius: 47,
+                            backgroundImage: _photoUrl != null
+                                ? NetworkImage(_photoUrl!)
+                                : null,
+                            child: _photoUrl == null
+                                ? const Icon(Icons.person, size: 50)
+                                : null,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _uploadPhoto,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.camera_alt,
+                                size: 20,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Personal Information',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: InputDecoration(
+                              labelText: 'Name',
+                              prefixIcon: const Icon(Icons.person_outline),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: _updateProfile,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.save),
+                                SizedBox(width: 8),
+                                Text('Save Changes'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+class UserProfileSection extends StatelessWidget {
+  const UserProfileSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Profile',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text('Email: ${user?.email ?? 'Not logged in'}'),
         ],
       ),
     );
@@ -426,7 +1329,6 @@ class _DrawingPageState extends State<DrawingPage> {
   bool _iscorrect = false;
   bool _hasChecked = false;
 
-
   final Map<String, Map<String, String>> _categories = {
     "Vowels": {
       "अ": "assets/stroke_orders/vowels/a.png",
@@ -499,35 +1401,32 @@ class _DrawingPageState extends State<DrawingPage> {
     loadModel();
   }
 
-  Future<void> loadModel() async{
-    try{
+  Future<void> loadModel() async {
+    try {
       _interpreter = await Interpreter.fromAsset('assets/models/nepali_char.tflite');
-    }catch(e){
+      print('Model loaded successfully');
+    } catch (e) {
       print('Error loading model: $e');
     }
   }
-  Future<void> checkDrawing() async {
-    if (_interpreter == null || _selectedLetter == null) return;
 
+  Future<void> checkDrawing() async {
     try {
-      // Create a boundary around the drawing area
+      // 1. Convert drawing to image
       final RenderBox renderBox = context.findRenderObject() as RenderBox;
       final size = renderBox.size;
-
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
 
-      // Draw white background
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()..color = Colors.white,
-      );
+      // White background
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
+          Paint()..color = Colors.white);
 
-      // Draw the character
+      // Draw user's strokes
       final paint = Paint()
         ..color = Colors.black
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = _brushSize;
+        ..strokeWidth = _brushSize
+        ..strokeCap = StrokeCap.round;
 
       for (int i = 0; i < _points.length - 1; i++) {
         if (_points[i] != null && _points[i + 1] != null) {
@@ -535,62 +1434,38 @@ class _DrawingPageState extends State<DrawingPage> {
         }
       }
 
-      // Convert to image
+      // 2. Convert to 28x28 grayscale image
       final picture = recorder.endRecording();
-      final img = await picture.toImage(28, 28);
-      final imgBytes = await img.toByteData(format: ui.ImageByteFormat.png);
+      final uiImage = await picture.toImage(28, 28);
+      final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
+      final image = imgs.decodeImage(byteData!.buffer.asUint8List())!;
+      final grayscale = imgs.grayscale(image);  // Official grayscale conversion
 
-      if (imgBytes == null) return;
+      // 3. Prepare model input tensor
+      final input = List.generate(1, (_) =>
+          List.generate(28, (_) =>
+              List.generate(28, (_) =>
+                  List.filled(1, 0.0))));
 
-      // Process image for model input
-      final inputImage = imgs.decodeImage(imgBytes.buffer.asUint8List());
-      if (inputImage == null) return;
-
-      final grayscale = imgs.grayscale(inputImage);
-      // Prepare input tensor (assuming model expects 28x28 grayscale image)
-      var input = List.generate(
-        1,
-            (_) => List.generate(
-          28,
-              (_) => List.generate(
-            28,
-                (_) => 0.0,
-          ),
-        ),
-      );
-
-      // Normalize pixel values
+      // 4. Normalize pixel values properly
       for (int y = 0; y < 28; y++) {
         for (int x = 0; x < 28; x++) {
-          input[0][y][x] = grayscale.getPixel(x, y) / 255.0;
+          final pixel = grayscale.getPixel(x, y);
+          // Get luminance value (proper grayscale conversion)
+          final value = imgs.getLuminance(pixel) / 255.0;
+          input[0][y][x][0] = value;
         }
       }
 
-      // Run inference
-      var output = List.filled(1 * _categories[_selectedCategory]!.length, 0.0)
-          .reshape([1, _categories[_selectedCategory]!.length]);
+      // 5. Run inference
+      final output = List.filled(1 * 58, 0.0).reshape([1, 58]);
       _interpreter!.run(input, output);
 
-      // Get prediction
-      final predictions = output[0] as List<double>;
-      final maxScore = predictions.reduce((a, b) => a > b ? a : b);
-      final predictedIndex = predictions.indexOf(maxScore);
-
-      // Compare with selected letter
-      final letters = _categories[_selectedCategory]!.keys.toList();
-      final predictedLetter = letters[predictedIndex];
-
-      setState(() {
-        _iscorrect = predictedLetter == _selectedLetter;
-        _hasChecked = true;
-      });
-
+      // ... rest of your processing logic ...
     } catch (e) {
-      print('Error processing drawing: $e');
+      print('Error in checkDrawing: $e');
     }
   }
-
-
 
   void _pickColor() {
     showDialog(

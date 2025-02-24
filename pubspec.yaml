@@ -38,24 +38,34 @@ dependencies:
   cupertino_icons: ^1.0.8
   audioplayers: ^6.1.0
   path_provider: ^2.1.5
-  intl: ^0.18.0
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.0
+  intl: ^0.20.2
+  firebase_core: ^3.11.0
+  firebase_auth: ^5.4.2
   flutter_colorpicker: ^1.0.3
   google_sign_in: ^6.2.2
-  tflite_flutter: ^0.9.0
-  image: ^3.2.0
+  tflite_flutter: ^0.11.0
+  image: ^4.5.2
   provider: ^6.1.2
+  cloud_firestore: ^5.6.4
+  flutter_launcher_icons: ^0.13.1
+  firebase_storage: ^12.4.3
+  image_picker: ^0.8.7+4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^5.0.0
 
+flutter_icons:  # This should be placed at the top level
+  android: true
+  ios: true
+  image_path: "assets/appicon/Nepali_Yatra.jpeg"
+  adaptive_icon_background: "#ffffff"
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -85,6 +95,8 @@ flutter:
    - assets/colors/
    - assets/Sounds/
    - assets/models/nepali_char.tflite
+   - assets/test/
+   - assets/appicon/Nepali_Yatra.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

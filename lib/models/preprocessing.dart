@@ -13,9 +13,9 @@ Uint8List preprocessImage(Uint8List imageData) {
   for (int i = 0; i < 784; i++) {
     int x = i % 28;
     int y = i ~/ 28;
-    int pixel = image.getPixel(x, y);
+    int pixel = image.getPixel(x, y) as int;
     // Calculate normalized luminance.
-    input[i] = img.getLuminance(pixel) / 255.0;
+    input[i] = img.getLuminance(pixel as img.Color) / 255.0;
   }
 
   return input.buffer.asUint8List();

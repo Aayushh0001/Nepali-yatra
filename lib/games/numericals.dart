@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'game_services.dart';
 
 class NepaliNumeralMatchGame extends StatefulWidget {
   const NepaliNumeralMatchGame({super.key});
@@ -72,6 +73,7 @@ class _NepaliNumeralMatchGameState extends State<NepaliNumeralMatchGame> {
           selectedNepaliNumeral = null;
           selectedEnglishNumeral = null;
           if (matchedPairs.length == 5) {
+            GameServices.updateUserScore(10);
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
