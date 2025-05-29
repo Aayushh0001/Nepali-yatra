@@ -35,7 +35,7 @@ There are very few quality mobile apps that focus on learning the **Nepali langu
 To run the app locally:
 
 ```bash
-git clone https://github.com/your-username/nepali-yatra.git
+git clone https://github.com/@Aayushh0001/nepali-yatra.git
 cd nepali-yatra
 flutter pub get
 flutter run
